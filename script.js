@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", async function () {
-    const url = "https://ai-digest.onrender.com/api/data"; // Fetch from backend
+    const url = "https://ai-digest-api.onrender.com/api/data"; // Fetch from backend
     let showGrandMaVersion = false;
     const ITEMS_PER_PAGE = 6; // Number of items to show per page
     let currentPage = 1;
