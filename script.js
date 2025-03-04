@@ -218,7 +218,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             const card = document.createElement("div");
             card.classList.add("card");
             card.innerHTML = `
-                <img data-src="${imageUrl}" src="default.jpg" alt="News Image" onerror="this.src='default.jpg';">
+                <img data-src="${imageUrl}" src="placeholder.jpg" alt="News Image" onerror="this.src='default.jpg';">
                 <h3>${fields["Title"] || "Sin título"}</h3>
                 <p class="date">${fields["Date"] || "Fecha no disponible"}</p>
                 <div>${newsText}</div>
