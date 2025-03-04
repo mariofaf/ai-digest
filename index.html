@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Daily AI News</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <div class="title-container">
+                <h1>🚀 <span>AI for Everyone</span> </h1>
+                <h2>«No entiendes realmente algo a menos que seas capaz de explicárselo a tu abuela». A.Einstein</h2>
+                <span class="beta-tag">Beta Version - <span id="date"></span></span>
+            </div>
+            <div class="version-toggle">
+                <button id="toggle-version-btn" class="version-toggle-btn">
+                    <span class="btn-icon">📜</span>
+                    <span class="btn-text">Show GrandMa Version</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search news...">
+                <button id="clear-search" class="clear-search-btn">✖</button>
+            </div>
+            <button id="dark-mode-toggle" class="dark-mode-toggle-btn">🌙 Dark Mode</button>
+        </div>
+    </header>
+
+    <main id="card-container">
+        <p id="loading">Loading news...</p>
+    </main>
+
+    <footer>
+        <p>Developed by <strong>Mario Arias</strong></p>
+        <div class="social-links">
+            <a href="https://www.linkedin.com/in/marioariasf" target="_blank">🔗 LinkedIn</a>
+            <a href="https://github.com/mariofaf" target="_blank">🐙 GitHub</a>
+            <a href="https://instagram.com/mariofaf" target="_blank">📷 Instagram</a>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
