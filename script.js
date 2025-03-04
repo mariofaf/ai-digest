@@ -288,7 +288,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     try {
         const response = await fetch(url);
         const data = await response.json();
-
+        if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+       }
         loadingElement.style.display = "none";
 
         if (!data.records || !data.records.length) {
