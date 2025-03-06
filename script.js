@@ -1,5 +1,5 @@
-document.addEventListener("DOMContentLoaded", async function () {
-    const url = "https://ai-digest-api.onrender.com/api/data"; // Fetch from backend
+document.addEventListener("DOMContentLoaded", function () {
+    const url = "https://ai-digest-api.onrender.com/api/data"; // Your deployed backend URL
     let showGrandMaVersion = false;
     const ITEMS_PER_PAGE = 6; // Number of items to show per page
     let currentPage = 1;
@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const cardContainer = document.getElementById("card-container");
     const toggleButton = document.getElementById("toggle-version-btn");
     const darkModeToggle = document.getElementById("dark-mode-toggle");
-    const loadingElement = document.getElementById("loading");
     const searchInput = document.getElementById("search-input");
     const clearSearchButton = document.getElementById("clear-search");
 
@@ -18,6 +17,25 @@ document.addEventListener("DOMContentLoaded", async function () {
     const dateElement = document.getElementById("date");
     if (dateElement) {
         dateElement.textContent = today.toLocaleDateString();
+    }
+
+    // Show loading skeletons
+    function showLoadingState() {
+        cardContainer.innerHTML = "";
+        
+        // Create skeleton cards
+        for (let i = 0; i < 6; i++) {
+            const skeletonCard = document.createElement("div");
+            skeletonCard.classList.add("card", "skeleton-card");
+            skeletonCard.innerHTML = `
+                <div class="skeleton-img"></div>
+                <div class="skeleton-title"></div>
+                <div class="skeleton-date"></div>
+                <div class="skeleton-content"></div>
+                <div class="skeleton-buttons"></div>
+            `;
+            cardContainer.appendChild(skeletonCard);
+        }
     }
 
     // Lazy load images
@@ -125,37 +143,37 @@ document.addEventListener("DOMContentLoaded", async function () {
     function copyToClipboard(title, button) {
         navigator.clipboard.writeText(`Check out this AI news: ${title}`)
             .then(() => {
-                // Create and display "Copied" message
-                const message = document.createElement('div');
-                message.textContent = 'Copied to clipboard!';
-                message.classList.add('copy-message');
-                message.style.position = 'absolute';
-                message.style.background = '#333';
-                message.style.color = 'white';
-                message.style.padding = '5px 10px';
-                message.style.borderRadius = '5px';
-                message.style.zIndex = '1000';
-                
-                // Position near the share button
-                const rect = button.getBoundingClientRect();
-                message.style.top = `${rect.bottom + window.scrollY + 5}px`;
-                message.style.left = `${rect.left + window.scrollX}px`;
-                
-                document.body.appendChild(message);
-                
                 // Change button text temporarily
                 const originalText = button.innerHTML;
                 button.innerHTML = '✓ Copied!';
                 
-                // Remove message and restore button after 2 seconds
+                // Restore button after 2 seconds
                 setTimeout(() => {
-                    document.body.removeChild(message);
                     button.innerHTML = originalText;
                 }, 2000);
             })
             .catch(err => {
                 console.error('Failed to copy:', err);
             });
+    }
+
+    // Display a notification
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Fade in
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        // Remove after a delay
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
 
     // Pagination Function
@@ -173,7 +191,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             `;
             cardContainer.appendChild(noResults);
             
-            document.getElementById('reset-search').addEventListener('click', () => {
+            document.getElementById('reset-search')?.addEventListener('click', () => {
                 searchInput.value = '';
                 filteredData = allData;
                 renderPaginatedData();
@@ -187,9 +205,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         const endIndex = startIndex + ITEMS_PER_PAGE;
         const paginatedData = dataToRender.slice(startIndex, endIndex);
 
-        paginatedData.forEach((record) => {
+        // Add animation classes for staggered entry
+        paginatedData.forEach((record, index) => {
             const fields = record.fields;
-            const imageUrl = fields["Image"] || "default.jpg";
+            const imageUrl = fields["Image"] || "placeholder.jpg";
             const votes = fields["Votes"] || 0;
 
             let newsText;
@@ -216,7 +235,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
 
             const card = document.createElement("div");
-            card.classList.add("card");
+            card.classList.add("card", "fade-in");
+            card.style.animationDelay = `${index * 0.1}s`;
             card.innerHTML = `
                 <img data-src="${imageUrl}" src="placeholder.jpg" alt="News Image" onerror="this.src='default.jpg';">
                 <h3>${fields["Title"] || "Sin título"}</h3>
@@ -235,17 +255,16 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
 
         // Create pagination controls
-        createPaginationControls(dataToRender);
+        if (dataToRender.length > ITEMS_PER_PAGE) {
+            createPaginationControls(dataToRender);
+        }
+        
         lazyLoadImages();
     }
 
     // Pagination Controls
     function createPaginationControls(dataToRender) {
         const totalPages = Math.ceil(dataToRender.length / ITEMS_PER_PAGE);
-        
-        if (totalPages <= 1) {
-            return; // Don't show pagination if only one page
-        }
         
         const paginationContainer = document.createElement('div');
         paginationContainer.classList.add('pagination');
@@ -285,75 +304,169 @@ document.addEventListener("DOMContentLoaded", async function () {
         cardContainer.appendChild(paginationContainer);
     }
 
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-       }
-        loadingElement.style.display = "none";
-
-        if (!data.records || !data.records.length) {
-            cardContainer.innerHTML = "<p>No hay datos disponibles.</p>";
+    // Main fetch function with caching
+    async function fetchData() {
+        // Show loading state first
+        showLoadingState();
+        
+        // Check cache first
+        const cacheKey = 'ai-digest-data';
+        const cacheTime = 'ai-digest-timestamp';
+        const cacheExpiration = 10 * 60 * 1000; // 10 minutes in milliseconds
+        
+        const cachedData = localStorage.getItem(cacheKey);
+        const cachedTime = localStorage.getItem(cacheTime);
+        const currentTime = new Date().getTime();
+        
+        // If we have valid cached data, use it
+        if (cachedData && cachedTime && (currentTime - cachedTime < cacheExpiration)) {
+            console.log("Using cached data");
+            const data = JSON.parse(cachedData);
+            
+            allData = data.records;
+            filteredData = allData;
+            renderPaginatedData();
+            initializeVoting();
+            initializeSharing();
+            
+            // Subtle notification that we're using cached data
+            showNotification('Using cached data', 'info');
             return;
         }
-
-        allData = data.records;
-        filteredData = allData;
-        renderPaginatedData();
-        initializeVoting();
-        initializeSharing();
-
-        // Toggle between GrandMa Version & Original Version
-        toggleButton.addEventListener("click", () => {
-            showGrandMaVersion = !showGrandMaVersion;
-            
-            // Update button text
-            const btnIcon = toggleButton.querySelector('.btn-icon');
-            const btnText = toggleButton.querySelector('.btn-text');
-            
-            if (showGrandMaVersion) {
-                btnIcon.textContent = '📄';
-                btnText.textContent = 'Show Original News';
-            } else {
-                btnIcon.textContent = '📜';
-                btnText.textContent = 'Show GrandMa Version';
-            }
-
-            // Maintain search when toggling
-            currentPage = 1;
-            renderPaginatedData();
-        });
-
-        // Search event listener
-        searchInput.addEventListener('input', performSearch);
         
-        // Clear search button
-        clearSearchButton.addEventListener('click', () => {
-            searchInput.value = '';
+        // Otherwise fetch from API
+        try {
+            console.log("Fetching fresh data from:", url);
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log("Data fetched successfully");
+            
+            // Cache the data
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            localStorage.setItem(cacheTime, currentTime.toString());
+            
+            if (!data.records || !data.records.length) {
+                cardContainer.innerHTML = "<p class='no-data'>No hay datos disponibles.</p>";
+                return;
+            }
+            
+            allData = data.records;
             filteredData = allData;
-            currentPage = 1;
             renderPaginatedData();
-            clearSearchButton.style.display = 'none';
-        });
+            initializeVoting();
+            initializeSharing();
+            
+        } catch (error) {
+            console.error("❌ Error fetching data:", error);
+            
+            // Try to use cached data even if it's expired
+            if (cachedData) {
+                console.log("Using expired cached data as fallback");
+                const data = JSON.parse(cachedData);
+                
+                allData = data.records;
+                filteredData = allData;
+                renderPaginatedData();
+                initializeVoting();
+                initializeSharing();
+                
+                // Show a notification that data might be outdated
+                showNotification('Using cached data. Could not fetch latest content.', 'warning');
+                return;
+            }
+            
+            cardContainer.innerHTML = `
+                <div class="error-container">
+                    <div class="error-icon">❌</div>
+                    <h3>Error al cargar los datos</h3>
+                    <p>${error.message}</p>
+                    <button onclick="fetchData()">Intentar de nuevo</button>
+                </div>
+            `;
+        }
+    }
 
-        // Dark Mode Toggle
-        darkModeToggle.addEventListener("click", () => {
-            document.body.classList.toggle("dark-mode");
-            const isDark = document.body.classList.contains("dark-mode");
-            localStorage.setItem("darkMode", isDark);
-            darkModeToggle.textContent = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
-        });
+    // Initialize the app
+    fetchData();
 
-        // Load Dark Mode from Local Storage
-        const savedDarkMode = localStorage.getItem("darkMode") === "true";
-        if (savedDarkMode) {
-            document.body.classList.add("dark-mode");
-            darkModeToggle.textContent = "☀️ Light Mode";
+    // Event Listeners
+    // Toggle between GrandMa Version & Original Version
+    toggleButton.addEventListener("click", () => {
+        showGrandMaVersion = !showGrandMaVersion;
+        
+        // Update button text
+        const btnIcon = toggleButton.querySelector('.btn-icon');
+        const btnText = toggleButton.querySelector('.btn-text');
+        
+        if (showGrandMaVersion) {
+            btnIcon.textContent = '📄';
+            btnText.textContent = 'Show Original News';
+        } else {
+            btnIcon.textContent = '📜';
+            btnText.textContent = 'Show GrandMa Version';
         }
 
-    } catch (error) {
-        console.error("❌ Error fetching data:", error);
-        loadingElement.textContent = "❌ Error al cargar los datos. Por favor, intente de nuevo más tarde.";
+        // Maintain search when toggling
+        currentPage = 1;
+        renderPaginatedData();
+    });
+
+    // Search event listener
+    searchInput?.addEventListener('input', performSearch);
+    
+    // Clear search button
+    clearSearchButton?.addEventListener('click', () => {
+        searchInput.value = '';
+        filteredData = allData;
+        currentPage = 1;
+        renderPaginatedData();
+        clearSearchButton.style.display = 'none';
+    });
+
+    // Dark Mode Toggle
+    darkModeToggle.addEventListener("click", () => {
+        document.body.classList.toggle("dark-mode");
+        const isDark = document.body.classList.contains("dark-mode");
+        localStorage.setItem("darkMode", isDark);
+        darkModeToggle.textContent = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
+    });
+
+    // Load Dark Mode from Local Storage
+    const savedDarkMode = localStorage.getItem("darkMode") === "true";
+    if (savedDarkMode) {
+        document.body.classList.add("dark-mode");
+        darkModeToggle.textContent = "☀️ Light Mode";
     }
+    
+    // Implement pull-to-refresh functionality
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    document.addEventListener('touchstart', function(e) {
+        touchStartY = e.touches[0].clientY;
+    }, false);
+    
+    document.addEventListener('touchend', function(e) {
+        touchEndY = e.changedTouches[0].clientY;
+        handleSwipe();
+    }, false);
+    
+    function handleSwipe() {
+        // If user pulled down at the top of the page (pull-to-refresh gesture)
+        if (touchEndY > touchStartY + 70 && window.scrollY < 10) {
+            showNotification('Refreshing...', 'info');
+            // Clear cache to force a fresh fetch
+            localStorage.removeItem('ai-digest-data');
+            localStorage.removeItem('ai-digest-timestamp');
+            fetchData();
+        }
+    }
+    
+    // Make fetchData accessible globally (for retry button)
+    window.fetchData = fetchData;
 });
