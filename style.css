@@ -25,14 +25,17 @@ header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
     width: 100%;
 }
 
 .header-right {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 15px;
+    width: 100%;
+    justify-content: center;
+    margin-top: 15px;
 }
 
 .title-container {
@@ -43,9 +46,19 @@ header {
 }
 
 h1 {
-    font-size: 36px;
+    font-size: 28px;
     font-weight: bold;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quote {
+    font-style: italic;
+    margin: 10px 0;
+    font-size: 16px;
+    color: #555;
 }
 
 .beta-tag {
@@ -481,4 +494,131 @@ footer p {
     .pagination button {
         width: 100%;
     }
+}
+
+/* Skeleton loading animation */
+.skeleton-card {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-img {
+  height: 200px;
+  background: #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.skeleton-title {
+  height: 24px;
+  background: #e0e0e0;
+  width: 80%;
+  margin: 0 auto 10px auto;
+  border-radius: 4px;
+}
+
+.skeleton-date {
+  height: 16px;
+  background: #e0e0e0;
+  width: 40%;
+  margin: 0 auto 15px auto;
+  border-radius: 4px;
+}
+
+.skeleton-content {
+  height: 100px;
+  background: #e0e0e0;
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.skeleton-buttons {
+  height: 36px;
+  background: #e0e0e0;
+  width: 70%;
+  margin: 0 auto;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Error container styling */
+.error-container {
+  text-align: center;
+  padding: 30px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.error-container button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  margin-top: 15px;
+  cursor: pointer;
+}
+
+/* Card fade-in animation */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.5s forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* No data message */
+.no-data {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #666;
+}
+
+/* Dark mode styles for loading elements */
+.dark-mode .skeleton-img,
+.dark-mode .skeleton-title,
+.dark-mode .skeleton-date,
+.dark-mode .skeleton-content,
+.dark-mode .skeleton-buttons {
+  background: #404040;
+}
+
+.dark-mode .error-container {
+  background: #292929;
+  color: white;
+}
+
+.dark-mode .no-data {
+  color: #aaa;
+}
+
+.dark-mode .error-container button {
+  background: #4a90e2;
+}
+
+.dark-mode .error-container button:hover {
+  background: #3a7bc8;
 }
