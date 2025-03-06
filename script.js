@@ -157,25 +157,6 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // Display a notification
-    function showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        
-        // Fade in
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-        
-        // Remove after a delay
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-
     // Pagination Function
     function renderPaginatedData() {
         cardContainer.innerHTML = "";
@@ -304,39 +285,13 @@ document.addEventListener("DOMContentLoaded", function () {
         cardContainer.appendChild(paginationContainer);
     }
 
-    // Main fetch function with caching
+    // Main fetch function
     async function fetchData() {
         // Show loading state first
         showLoadingState();
         
-        // Check cache first
-        const cacheKey = 'ai-digest-data';
-        const cacheTime = 'ai-digest-timestamp';
-        const cacheExpiration = 10 * 60 * 1000; // 10 minutes in milliseconds
-        
-        const cachedData = localStorage.getItem(cacheKey);
-        const cachedTime = localStorage.getItem(cacheTime);
-        const currentTime = new Date().getTime();
-        
-        // If we have valid cached data, use it
-        if (cachedData && cachedTime && (currentTime - cachedTime < cacheExpiration)) {
-            console.log("Using cached data");
-            const data = JSON.parse(cachedData);
-            
-            allData = data.records;
-            filteredData = allData;
-            renderPaginatedData();
-            initializeVoting();
-            initializeSharing();
-            
-            // Subtle notification that we're using cached data
-            showNotification('Using cached data', 'info');
-            return;
-        }
-        
-        // Otherwise fetch from API
         try {
-            console.log("Fetching fresh data from:", url);
+            console.log("Fetching data from:", url);
             const response = await fetch(url);
             
             if (!response.ok) {
@@ -344,11 +299,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             
             const data = await response.json();
-            console.log("Data fetched successfully");
-            
-            // Cache the data
-            localStorage.setItem(cacheKey, JSON.stringify(data));
-            localStorage.setItem(cacheTime, currentTime.toString());
+            console.log("Data fetched successfully:", data);
             
             if (!data.records || !data.records.length) {
                 cardContainer.innerHTML = "<p class='no-data'>No hay datos disponibles.</p>";
@@ -363,23 +314,6 @@ document.addEventListener("DOMContentLoaded", function () {
             
         } catch (error) {
             console.error("❌ Error fetching data:", error);
-            
-            // Try to use cached data even if it's expired
-            if (cachedData) {
-                console.log("Using expired cached data as fallback");
-                const data = JSON.parse(cachedData);
-                
-                allData = data.records;
-                filteredData = allData;
-                renderPaginatedData();
-                initializeVoting();
-                initializeSharing();
-                
-                // Show a notification that data might be outdated
-                showNotification('Using cached data. Could not fetch latest content.', 'warning');
-                return;
-            }
-            
             cardContainer.innerHTML = `
                 <div class="error-container">
                     <div class="error-icon">❌</div>
@@ -441,30 +375,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (savedDarkMode) {
         document.body.classList.add("dark-mode");
         darkModeToggle.textContent = "☀️ Light Mode";
-    }
-    
-    // Implement pull-to-refresh functionality
-    let touchStartY = 0;
-    let touchEndY = 0;
-    
-    document.addEventListener('touchstart', function(e) {
-        touchStartY = e.touches[0].clientY;
-    }, false);
-    
-    document.addEventListener('touchend', function(e) {
-        touchEndY = e.changedTouches[0].clientY;
-        handleSwipe();
-    }, false);
-    
-    function handleSwipe() {
-        // If user pulled down at the top of the page (pull-to-refresh gesture)
-        if (touchEndY > touchStartY + 70 && window.scrollY < 10) {
-            showNotification('Refreshing...', 'info');
-            // Clear cache to force a fresh fetch
-            localStorage.removeItem('ai-digest-data');
-            localStorage.removeItem('ai-digest-timestamp');
-            fetchData();
-        }
     }
     
     // Make fetchData accessible globally (for retry button)
