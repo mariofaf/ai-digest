@@ -38,6 +38,15 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Sort data by date (newest to oldest)
+    function sortDataByDate(data) {
+        return [...data].sort((a, b) => {
+            const dateA = new Date(a.fields.Date);
+            const dateB = new Date(b.fields.Date);
+            return dateB - dateA; // For newest to oldest
+        });
+    }
+
     // Lazy load images
     function lazyLoadImages() {
         const images = document.querySelectorAll('.card img');
@@ -299,14 +308,15 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             
             const data = await response.json();
-            console.log("Data fetched successfully:", data);
+            console.log("Data fetched successfully");
             
             if (!data.records || !data.records.length) {
                 cardContainer.innerHTML = "<p class='no-data'>No hay datos disponibles.</p>";
                 return;
             }
             
-            allData = data.records;
+            // Sort the data by date (newest to oldest)
+            allData = sortDataByDate(data.records);
             filteredData = allData;
             renderPaginatedData();
             initializeVoting();
