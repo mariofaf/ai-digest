@@ -1,10 +1,11 @@
 document.addEventListener("DOMContentLoaded", function () {
     const url = "https://ai-digest-api.onrender.com/api/data"; // Your deployed backend URL
-    let showGrandMaVersion = false;
+    let showGlobalGrandMaVersion = false; // Global toggle state
     const ITEMS_PER_PAGE = 6; // Number of items to show per page
     let currentPage = 1;
     let allData = []; // Store all fetched data
     let filteredData = []; // Filtered data for search
+    let cardGrandMaState = {}; // Track individual card states
 
     const cardContainer = document.getElementById("card-container");
     const toggleButton = document.getElementById("toggle-version-btn");
@@ -71,6 +72,56 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Generate news text (GrandMa or Original)
+    function getNewsText(fields, isGrandMaVersion, cardId) {
+        if (isGrandMaVersion) {
+            if (fields["GrandMa Text"]) {
+                let granMaSentences = fields["GrandMa Text"].split(". ");
+                let summary = `<p><strong>📌 Resumen:</strong> ${granMaSentences[0]}.</p>`;
+                let ideas = "<div class='key-ideas'>💡 Ideas Clave:</div><ul>";
+
+                granMaSentences.slice(1).forEach(sentence => {
+                    if (sentence.trim()) {
+                        ideas += `<li>${sentence}.</li>`;
+                    }
+                });
+
+                ideas += "</ul>";
+                return `<div class="grandma-text">${summary + ideas}</div>`;
+            } else {
+                return "<p>📌 No hay versión GrandMa disponible.</p>";
+            }
+        } else {
+            let paragraphs = fields["Original Text"] ? fields["Original Text"].split("\n") : [];
+            return `<div class="original-text">${paragraphs.map(p => `<p><strong>📝 Idea clave:</strong> ${p}</p>`).join("")}</div>`;
+        }
+    }
+
+    // Toggle individual card version
+    function toggleCardVersion(cardId) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+
+        // Toggle this specific card's state
+        cardGrandMaState[cardId] = !cardGrandMaState[cardId];
+        const isGrandMaVersion = cardGrandMaState[cardId];
+        
+        // Update button text
+        const toggleBtn = card.querySelector('.card-version-toggle');
+        if (toggleBtn) {
+            toggleBtn.textContent = isGrandMaVersion ? '📄 View Original' : '👵 View GrandMa Version';
+            toggleBtn.classList.toggle('grandma-active', isGrandMaVersion);
+        }
+        
+        // Update content
+        const contentContainer = card.querySelector('.content-container');
+        const record = allData.find(r => r.id === cardId) || filteredData.find(r => r.id === cardId);
+        
+        if (record && contentContainer) {
+            contentContainer.innerHTML = getNewsText(record.fields, isGrandMaVersion, cardId);
+        }
+    }
+
     // Search functionality
     function performSearch() {
         const searchTerm = searchInput.value.toLowerCase().trim();
@@ -79,10 +130,8 @@ document.addEventListener("DOMContentLoaded", function () {
             filteredData = allData.filter(record => {
                 const fields = record.fields;
                 const titleMatch = (fields["Title"] || "").toLowerCase().includes(searchTerm);
-                const textMatch = (showGrandMaVersion 
-                    ? (fields["GrandMa Text"] || "").toLowerCase() 
-                    : (fields["Original Text"] || "").toLowerCase()
-                ).includes(searchTerm);
+                const textMatch = (fields["GrandMa Text"] || "").toLowerCase().includes(searchTerm) || 
+                                 (fields["Original Text"] || "").toLowerCase().includes(searchTerm);
                 
                 return titleMatch || textMatch;
             });
@@ -166,6 +215,19 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
+    // Initialize card version toggling
+    function initializeCardToggles() {
+        cardContainer.addEventListener('click', function(event) {
+            const toggleButton = event.target.closest('.card-version-toggle');
+            if (toggleButton) {
+                const card = toggleButton.closest('.card');
+                if (card && card.id) {
+                    toggleCardVersion(card.id);
+                }
+            }
+        });
+    }
+
     // Pagination Function
     function renderPaginatedData() {
         cardContainer.innerHTML = "";
@@ -200,45 +262,37 @@ document.addEventListener("DOMContentLoaded", function () {
             const fields = record.fields;
             const imageUrl = fields["Image"] || "placeholder.jpg";
             const votes = fields["Votes"] || 0;
+            const cardId = record.id || `card-${index}`;
 
-            let newsText;
-            if (showGrandMaVersion) {
-                if (fields["GrandMa Text"]) {
-                    let granMaSentences = fields["GrandMa Text"].split(". ");
-                    let summary = `<p><strong>📌 Resumen:</strong> ${granMaSentences[0]}.</p>`;
-                    let ideas = "<div class='key-ideas'>💡 Ideas Clave:</div><ul>";
-
-                    granMaSentences.slice(1).forEach(sentence => {
-                        if (sentence.trim()) {
-                            ideas += `<li>${sentence}.</li>`;
-                        }
-                    });
-
-                    ideas += "</ul>";
-                    newsText = `<div class="grandma-text">${summary + ideas}</div>`;
-                } else {
-                    newsText = "<p>📌 No hay versión GrandMa disponible.</p>";
-                }
-            } else {
-                let paragraphs = fields["Original Text"] ? fields["Original Text"].split("\n") : [];
-                newsText = `<div class="original-text">${paragraphs.map(p => `<p><strong>📝 Idea clave:</strong> ${p}</p>`).join("")}</div>`;
+            // Initialize card state if not set (default to global state or false)
+            if (cardGrandMaState[cardId] === undefined) {
+                cardGrandMaState[cardId] = showGlobalGrandMaVersion;
             }
 
+            const isGrandMaVersion = cardGrandMaState[cardId];
+            const newsText = getNewsText(fields, isGrandMaVersion, cardId);
+
             const card = document.createElement("div");
+            card.id = cardId;
             card.classList.add("card", "fade-in");
             card.style.animationDelay = `${index * 0.1}s`;
             card.innerHTML = `
                 <img data-src="${imageUrl}" src="placeholder.jpg" alt="News Image" onerror="this.src='default.jpg';">
                 <h3>${fields["Title"] || "Sin título"}</h3>
+                <button class="card-version-toggle ${isGrandMaVersion ? 'grandma-active' : ''}">
+                    ${isGrandMaVersion ? '📄 View Original' : '👵 View GrandMa Version'}
+                </button>
                 <p class="date">${fields["Date"] || "Fecha no disponible"}</p>
-                <div>${newsText}</div>
-                <div class="card-buttons">
-                    <button class="share-btn">🔗 Share</button>
-                    <button class="view-btn" onclick="window.open('${fields["URL"] || "#"}', '_blank')">👁️ View</button>
-                </div>
-                <div class="vote-container">
-                    <button class="vote-btn">👍 Vote</button>
-                    <span class="vote-count">${votes}</span>
+                <div class="content-container">${newsText}</div>
+                <div class="card-actions">
+                    <div class="card-buttons">
+                        <button class="share-btn">🔗 Share</button>
+                        <button class="view-btn" onclick="window.open('${fields["URL"] || "#"}', '_blank')">👁️ View</button>
+                    </div>
+                    <div class="vote-container">
+                        <button class="vote-btn">👍 Vote</button>
+                        <span class="vote-count">${votes}</span>
+                    </div>
                 </div>
             `;
             cardContainer.appendChild(card);
@@ -321,6 +375,7 @@ document.addEventListener("DOMContentLoaded", function () {
             renderPaginatedData();
             initializeVoting();
             initializeSharing();
+            initializeCardToggles();
             
         } catch (error) {
             console.error("❌ Error fetching data:", error);
@@ -339,25 +394,46 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchData();
 
     // Event Listeners
-    // Toggle between GrandMa Version & Original Version
+    // Global Toggle - affects all new cards but doesn't change existing ones
     toggleButton.addEventListener("click", () => {
-        showGrandMaVersion = !showGrandMaVersion;
+        showGlobalGrandMaVersion = !showGlobalGrandMaVersion;
         
         // Update button text
         const btnIcon = toggleButton.querySelector('.btn-icon');
         const btnText = toggleButton.querySelector('.btn-text');
         
-        if (showGrandMaVersion) {
+        if (showGlobalGrandMaVersion) {
             btnIcon.textContent = '📄';
             btnText.textContent = 'Show Original News';
         } else {
-            btnIcon.textContent = '📜';
+            btnIcon.textContent = '👵';
             btnText.textContent = 'Show GrandMa Version';
         }
 
-        // Maintain search when toggling
-        currentPage = 1;
-        renderPaginatedData();
+        // Apply to all visible cards
+        document.querySelectorAll('.card').forEach(card => {
+            if (card.id) {
+                cardGrandMaState[card.id] = showGlobalGrandMaVersion;
+                
+                // Update toggle button
+                const toggleBtn = card.querySelector('.card-version-toggle');
+                if (toggleBtn) {
+                    toggleBtn.textContent = showGlobalGrandMaVersion ? '📄 View Original' : '👵 View GrandMa Version';
+                    toggleBtn.classList.toggle('grandma-active', showGlobalGrandMaVersion);
+                }
+                
+                // Update content
+                const contentContainer = card.querySelector('.content-container');
+                const record = allData.find(r => r.id === card.id) || filteredData.find(r => r.id === card.id);
+                
+                if (record && contentContainer) {
+                    contentContainer.innerHTML = getNewsText(record.fields, showGlobalGrandMaVersion, card.id);
+                }
+            }
+        });
+
+        // Maintain current page and scroll position
+        // No need to re-render entire page
     });
 
     // Search event listener
