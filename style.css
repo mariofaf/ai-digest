@@ -700,3 +700,60 @@ footer p {
     transform: rotate(360deg);
   }
 }
+
+/* Individual toggle button on card */
+.card-version-toggle {
+  display: block;
+  width: calc(100% - 10px);
+  margin: 10px 5px 5px 5px;
+  padding: 8px 12px;
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.card-version-toggle:hover {
+  background: #e0e0e0;
+}
+
+.card-version-toggle.grandma-active {
+  background: #fff5e6;
+  color: #ff7300;
+  border-left: 3px solid #ffa500;
+}
+
+/* Date display */
+.card .date {
+  color: #666;
+  font-size: 14px;
+  margin: 5px 0 15px 0;
+  text-align: center;
+  display: block;
+  width: 100%;
+}
+
+/* Dark mode styles */
+.dark-mode .card-version-toggle {
+  background: #333;
+  color: #eee;
+}
+
+.dark-mode .card-version-toggle:hover {
+  background: #444;
+}
+
+.dark-mode .card-version-toggle.grandma-active {
+  background: #3d3d2d;
+  color: #ffa500;
+  border-left: 3px solid #ffa500;
+}
+
+.dark-mode .card .date {
+  color: #aaa;
+}
